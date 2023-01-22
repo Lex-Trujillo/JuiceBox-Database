@@ -6,6 +6,7 @@ const { client,
         getAllPosts,
         getPostsByUser,
         getUserById,
+        createTags
     } = require('./index');
 
 
@@ -14,6 +15,8 @@ const { client,
 async function dropTables() {
   try {
     await client.query(`
+        DROP TABLE IF EXISTS post_tags;
+        DROP TABLE IF EXISTS tags;
         DROP TABLE IF EXISTS posts;
         DROP TABLE IF EXISTS users;
     `);
@@ -61,6 +64,36 @@ async function createPostTable() {
     throw error; // we pass the error up to the function that calls createTables
   }
 }
+
+async function createTagTable() {
+    try {
+        await client.query(`
+        CREATE TABLE tags (
+        id SERIAL PRIMARY KEY,
+        name VARCHAR(255) UNIQUE NOT NULL
+        )
+        `)
+    }
+    catch (error) {
+    throw error; // we pass the error up to the function that calls createTables
+  }
+}
+
+async function createPostTagTable() {
+    try {
+        await client.query(`
+        CREATE TABLE post_tags (
+        postId INTEGER,
+        tagId INTEGER UNIQUE
+        )
+        `);
+    }
+    catch (error) {
+    throw error; // we pass the error up to the function that calls createTables
+  }
+}
+
+
 async function createInitialUsers() {
   try {
     await createUser({ username: 'albert', password: 'bertie99', name: 'albert', location: 'USA' });
@@ -78,7 +111,7 @@ async function updateUser(id, fields = {}) {
   const setString = Object.keys(fields).map(
     (key, index) => `"${ key }"=$${ index + 1 }`
   ).join(', ');
-    console.log(Object.values(fields), "ASDKFJASKLDFJ")
+    console.log(Object.values(fields), "ASDKFJASKLDFJ");
   // return early if this is called without fields
   if (setString.length === 0) {
     return;
@@ -105,6 +138,9 @@ async function rebuildDB() {
     await dropTables();
     await createTables();
     await createPostTable();
+    await createTagTable();
+    await createPostTagTable();
+    
     await createInitialUsers();
     await createInitialPosts();
     await getUserById(1);
@@ -143,6 +179,9 @@ async function testDB() {
     const albert = await getUserById(1);
     console.log("Result5:", albert);
 
+
+    await createTags(['fun', 'summer', 'beach']);
+
     console.log("Finished database tests!");
   } catch (error) {
     console.log("Error during testDB");
@@ -154,3 +193,6 @@ rebuildDB()
   .then(testDB)
   .catch(console.error)
   .finally(() => client.end());
+  
+  console.log('***********************');
+  
